@@ -9,26 +9,37 @@ import UIKit
 
 class ViewController: UIViewController {
     
+    // MARK: Enum
+    private enum Operation: Int {
+        // TODO: StoryBoardでSegmented Controlに設定するvalueをこれに統一したい
+        case plus = 0
+        case minus = 1
+        case multiple = 2
+        case divide = 3
+    }
+
     // MARK: Properties
-    private var number1: Double? {
+    private var numberText1: String {
         get {
-            guard let text = numberTextField1.text else { return nil }
-            return Double(text)
+            return numberTextField1.text ?? ""
         }
     }
     
-    private var number2: Double? {
+    private var numberText2: String {
         get {
-            guard let text = numberTextField2.text else { return nil }
-            return Double(text)
+            return numberTextField2.text ?? ""
         }
     }
     
-    private let expressionsMap = [
-        0: { (a: Double, b: Double) -> Double in a + b },
-        1: { (a: Double, b: Double) -> Double in a - b },
-        2: { (a: Double, b: Double) -> Double in a * b },
-        3: { (a: Double, b: Double) -> Double in a / b }
+    private var selectedOperation: Operation? {
+        return Operation(rawValue: operatorSegmentedControl.selectedSegmentIndex)
+    }
+    
+    private let expressionsMap: [Operation: (Double, Double) -> Double] = [
+        .plus:     { (a: Double, b: Double) -> Double in a + b },
+        .minus:    { (a: Double, b: Double) -> Double in a - b },
+        .multiple: { (a: Double, b: Double) -> Double in a * b },
+        .divide:   { (a: Double, b: Double) -> Double in a / b }
     ]
     
     // MARK: Outlets
@@ -38,12 +49,47 @@ class ViewController: UIViewController {
     @IBOutlet private weak var resultLabel: UILabel!
 
     // MARK: Actions
-    @IBAction func buttuonTapped(_ sender: Any) {
-        guard let expression = expressionsMap[operatorSegmentedControl.selectedSegmentIndex] else { return }
+    @IBAction private func buttuonTapped(_ sender: Any) {
+        let validateResult = validate()
+        if !validateResult.isValid {
+            resultLabel.text = validateResult.message
+            return
+        }
+
+        let result = calcurateResult()
+        resultLabel.text = result == nil ? "" : String(result!)
+    }
+    
+    // MARK: Methods
+    private func validate() -> (isValid: Bool, message: String?) {
+        let validateResult = validateNumber2NotZero()
+        if !validateResult.isValid {
+            return validateResult
+        }
+        // 他にバリデーションがある場合は追加する
+        // .....
         
-        let result = expression(number1!, number2!)
+        return(true, nil)
+    }
+    
+    private func validateNumber2NotZero() -> (isValid: Bool, message: String?) {
+        // 割り算以外の場合はバリデーションしない
+        if selectedOperation != .divide {
+            return(true, nil)
+        }
+        if numberText2 == "0" {
+            return(false, "割る数には0以外を入力してください")
+        }
+        return(true, nil)
+    }
+    
+    private func calcurateResult() -> Double? {
+        guard selectedOperation != nil else { return nil }
+        guard let expression = expressionsMap[selectedOperation!] else { return nil }
+        guard let number1 = Double(numberText1) else { return nil }
+        guard let number2 = Double(numberText2) else { return nil }
         
-        resultLabel.text = String(result)
+        return expression(number1, number2)
     }
     
 }
