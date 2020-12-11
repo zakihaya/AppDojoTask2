@@ -7,7 +7,7 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+final class ViewController: UIViewController {
     
     // MARK: Enum
     private enum Operation: Int {
@@ -20,26 +20,22 @@ class ViewController: UIViewController {
 
     // MARK: Properties
     private var numberText1: String {
-        get {
-            return numberTextField1.text ?? ""
-        }
+        numberTextField1.text ?? ""
     }
     
     private var numberText2: String {
-        get {
-            return numberTextField2.text ?? ""
-        }
+        numberTextField2.text ?? ""
     }
     
     private var selectedOperation: Operation? {
-        return Operation(rawValue: operatorSegmentedControl.selectedSegmentIndex)
+        Operation(rawValue: operatorSegmentedControl.selectedSegmentIndex)
     }
     
     private let expressionsMap: [Operation: (Double, Double) -> Double] = [
-        .plus:     { (a: Double, b: Double) -> Double in a + b },
-        .minus:    { (a: Double, b: Double) -> Double in a - b },
-        .multiple: { (a: Double, b: Double) -> Double in a * b },
-        .divide:   { (a: Double, b: Double) -> Double in a / b }
+        .plus:     (+),
+        .minus:    (-),
+        .multiple: (*),
+        .divide:   (/)
     ]
     
     // MARK: Outlets
@@ -51,19 +47,18 @@ class ViewController: UIViewController {
     // MARK: Actions
     @IBAction private func buttuonTapped(_ sender: Any) {
         let validateResult = validate()
-        if !validateResult.isValid {
+        guard validateResult.isValid else {
             resultLabel.text = validateResult.message
             return
         }
 
-        let result = calcurateResult()
-        resultLabel.text = result == nil ? "" : String(result!)
+        resultLabel.text = calcurateResult().map { String($0) } ?? ""
     }
     
     // MARK: Methods
     private func validate() -> (isValid: Bool, message: String?) {
         let validateResult = validateNumber2NotZero()
-        if !validateResult.isValid {
+        guard validateResult.isValid else {
             return validateResult
         }
         // 他にバリデーションがある場合は追加する
@@ -73,24 +68,27 @@ class ViewController: UIViewController {
     }
     
     private func validateNumber2NotZero() -> (isValid: Bool, message: String?) {
-        // 割り算以外の場合はバリデーションしない
-        if selectedOperation != .divide {
+        guard let selectedOperation = selectedOperation else {
+            fatalError("selectedOperation is nil.")
+        }
+        
+        switch selectedOperation {
+        case .divide:
+            guard numberText2 != "0" else {
+                return(false, "割る数には0以外を入力してください")
+            }
+            return(true, nil)
+        case .plus, .minus, .multiple:
             return(true, nil)
         }
-        if numberText2 == "0" {
-            return(false, "割る数には0以外を入力してください")
-        }
-        return(true, nil)
     }
     
     private func calcurateResult() -> Double? {
-        guard selectedOperation != nil else { return nil }
-        guard let expression = expressionsMap[selectedOperation!] else { return nil }
+        guard let selectedOperation = selectedOperation else { return nil }
+        guard let expression = expressionsMap[selectedOperation] else { return nil }
         guard let number1 = Double(numberText1) else { return nil }
         guard let number2 = Double(numberText2) else { return nil }
         
         return expression(number1, number2)
     }
-    
 }
-
